@@ -39,9 +39,9 @@ public class ProfileController {
         }
     }
 
-    @PutMapping
+    @PutMapping("{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Void> updateProfile(@Valid @RequestBody Profile profile, int id){
+    public ResponseEntity<Void> updateProfile(@Valid @RequestBody Profile profile,@PathVariable int id){
         try{
             this.profileDao.update(id,profile);
             return new ResponseEntity<>(HttpStatus.OK);

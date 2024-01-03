@@ -81,7 +81,7 @@ public class CategoriesController {
     public ResponseEntity<Void> deleteCategory(@PathVariable int id)
     {
         // delete the category by id
-        /*categoryDao.delete(id);*/
+        categoryDao.delete(id);
 
         return ResponseEntity.noContent().build();
     }
