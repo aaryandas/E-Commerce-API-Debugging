@@ -4,12 +4,18 @@ import org.yearup.data.ShoppingCartDao;
 import org.yearup.models.Product;
 import org.yearup.models.ShoppingCart;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.List;
+
+import javax.sql.DataSource;
 
 public class MySqlShoppingCartDao implements ShoppingCartDao {
 
     @Override
     public ShoppingCart getByUserId(int userId) {
+        String query = "SELECT * FROM shopping_cart WHERE user_id = ?";
+
         return null;
     }
 
