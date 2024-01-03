@@ -19,6 +19,11 @@ public class MySqlShoppingCartDao implements ShoppingCartDao {
     }
 
     @Override
+    public void addProductToCart(int userId, Product product) {
+
+    }
+
+    @Override
     public ShoppingCart create(ShoppingCart shoppingCart) {
         return null;
     }

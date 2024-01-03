@@ -40,26 +40,7 @@ public class ShoppingCartController {
 
     //POST METHOD
     @PostMapping("/products/{productId}")
-    public ShoppingCart addProductToCart(@PathVariable Long productId, Principal principal) {
-        try {
-            String userName = principal.getName();
-
-            User user = userDao.getByUserName(userName);
-            int userId = user.getId();
-
-            Product product = productDao.getProductById(productId);
-
-            shoppingCartDao.addProductToCart(userId, product);
-
-            return shoppingCartDao.getCartByUserId(userId);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error!");
-        }
-    }
-
-    // PUT METHOD
-    @PutMapping("/products/{productId}")
-    public ShoppingCart updateProductInCart(@PathVariable Long productId, @RequestBody int quantity, Principal principal) {
+    public ShoppingCart addProductToCart(@PathVariable int productId, Principal principal) {
         try {
             String userName = principal.getName();
 
@@ -68,7 +49,26 @@ public class ShoppingCartController {
 
             Product product = productDao.getById(productId);
 
-            shoppingCartDao.updateProductInCart(userId, product, quantity);
+            shoppingCartDao.addProductToCart(userId, product);
+
+            return shoppingCartDao.getByUserId(userId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error!");
+        }
+    }
+
+    // PUT METHOD
+    @PutMapping("/products/{productId}")
+    public ShoppingCart updateProductInCart(@PathVariable int productId, @RequestBody int quantity, Principal principal) {
+        try {
+            String userName = principal.getName();
+
+            User user = userDao.getByUserName(userName);
+            int userId = user.getId();
+
+            Product product = productDao.getById(productId);
+
+            shoppingCartDao.update(userId, productId, quantity);
 
             return shoppingCartDao.getByUserId(userId);
         } catch (Exception e) {
@@ -84,9 +84,9 @@ public class ShoppingCartController {
             User user = userDao.getByUserName(userName);
             int userId = user.getId();
 
-            shoppingCartDao.clearCart(userId);
+            shoppingCartDao.clear(userId);
 
-            return shoppingCartDao.getCartByUserId(userId);
+            return shoppingCartDao.getByUserId(userId);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
         }
