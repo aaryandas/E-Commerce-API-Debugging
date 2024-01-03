@@ -81,7 +81,7 @@ public class ProductsController
             if(foundProduct == null){
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             } else {
-                this.productDao.update(id,foundProduct);
+                this.productDao.update(id,product);
                 return new ResponseEntity<>(HttpStatus.OK);
             }
         }
