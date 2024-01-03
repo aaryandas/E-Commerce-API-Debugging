@@ -10,7 +10,7 @@ import org.yearup.models.Product;
 import org.yearup.models.ShoppingCart;
 import org.yearup.models.User;
 
-import java.security.Pringit cipal;
+import java.security.Principal;
 // convert this class to a REST controller
 // only logged in users should have access to these actions
 
