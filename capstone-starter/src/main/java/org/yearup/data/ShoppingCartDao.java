@@ -1,10 +1,12 @@
 package org.yearup.data;
 
+import org.springframework.stereotype.Repository;
 import org.yearup.models.Product;
 import org.yearup.models.ShoppingCart;
 
 import java.util.List;
 
+@Repository
 public interface ShoppingCartDao
 {
     ShoppingCart getByUserId(int userId);
