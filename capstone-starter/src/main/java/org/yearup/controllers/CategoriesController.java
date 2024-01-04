@@ -86,6 +86,7 @@ public class CategoriesController {
     {
         // delete the category by id
         categoryDao.delete(id);
+
         return ResponseEntity.noContent().build();
     }
 
