@@ -7,27 +7,36 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.yearup.data.ProfileDao;
+import org.yearup.data.UserDao;
 import org.yearup.models.Profile;
+import org.yearup.models.User;
 
 import javax.validation.Valid;
+import java.security.Principal;
 
 @RestController
-@RequestMapping("profile")
+@RequestMapping("/profile")
 @CrossOrigin
 public class ProfileController {
 
     private ProfileDao profileDao;
+    private UserDao userDao;
 
     @Autowired
-    public ProfileController(ProfileDao profileDao){
+    public ProfileController(ProfileDao profileDao, UserDao userDao){
+        this.userDao = userDao;
         this.profileDao = profileDao;
     }
 
-    @GetMapping("{id}")
+    @GetMapping()
     @PreAuthorize("permitAll()")
-    public Profile getById(@PathVariable int id){
+    public Profile getById(Principal principal){
         try {
-            var profile = profileDao.getByUserId(id);
+            String username = principal.getName();
+            User user = userDao.getByUserName(username);
+            int userId = user.getId();
+
+            var profile = profileDao.getByUserId(userId);
 
             if(profile == null)
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND);
@@ -39,15 +48,21 @@ public class ProfileController {
         }
     }
 
-    @PutMapping("{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Void> updateProfile(@Valid @RequestBody Profile profile,@PathVariable int id){
+    @PutMapping()
+    @PreAuthorize("permitAll()")
+    public Profile updateProfile(@RequestBody Profile profile, Principal principal){
         try{
-            this.profileDao.update(id,profile);
-            return new ResponseEntity<>(HttpStatus.OK);
+            String username = principal.getName();
+
+            User user = userDao.getByUserName(username);
+            int userId = user.getId();
+
+            profileDao.update(userId, profile);
+
+            return profileDao.getByUserId(userId);
+
         }catch(Exception ex){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... Let's try again.");
-
         }
     }
 
