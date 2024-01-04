@@ -3,6 +3,9 @@ package org.yearup.controllers;
 import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,12 +17,14 @@ import org.yearup.models.ShoppingCart;
 import org.yearup.models.User;
 
 import java.security.Principal;
+import java.util.List;
 import java.sql.SQLException;
 // convert this class to a REST controller
 // only logged in users should have access to these actions
 
 @RestController
 @RequestMapping("/cart")
+@CrossOrigin
 public class ShoppingCartController {
     // a shopping cart requires
     private ShoppingCartDao shoppingCartDao;
@@ -36,103 +41,71 @@ public class ShoppingCartController {
     }
 
     @GetMapping
-    public ShoppingCart getCart(Principal principal) {
-
-        if(principal == null){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not logged in");
-        }
-
-        try {
-            // get the currently logged in username
-            String userName = principal.getName();
-            // find database user by userId
-            User user = userDao.getByUserName(userName);
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ShoppingCart getCart(Principal principal){
+        try{
+            String username = principal.getName();
+            User user = userDao.getByUserName(username);
             int userId = user.getId();
 
-            // use the shoppingcartDao to get all items in the cart and return the cart
             return shoppingCartDao.getByUserId(userId);
-
-        } catch (UsernameNotFoundException ex) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Error!");
+        }
+        catch(Exception ex){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     //POST METHOD
     @PostMapping("/products/{productId}")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ShoppingCart addProductToCart(@PathVariable int productId, Principal principal) {
 
-        if(principal == null){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
+        try{
+            String username = principal.getName();
 
-        try {
-            String userName = principal.getName();
-
-            User user = userDao.getByUserName(userName);
+            User user = userDao.getByUserName(username);
             int userId = user.getId();
+            shoppingCartDao.addProductToCart(userId, productId);
 
-            Product product = productDao.getById(productId);
+            return shoppingCartDao.getByUserId(userId);
 
-            shoppingCartDao.addProductToCart(userId, product);
-
-            ShoppingCart updatedCart = shoppingCartDao.getByUserId(userId);
-
-            if(updatedCart == null || updatedCart.getItems().isEmpty()){
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            return updatedCart;
-
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error!");
+        }catch (Exception ex){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    // PUT METHOD
+    //PUT METHOD
     @PutMapping("/products/{productId}")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ShoppingCart updateProductInCart(@PathVariable int productId, @RequestBody int quantity, Principal principal) {
+        try{
+            String username = principal.getName();
 
-        if(principal == null){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
-
-        try {
-            String userName = principal.getName();
-
-            User user = userDao.getByUserName(userName);
+            User user = userDao.getByUserName(username);
             int userId = user.getId();
-
-            Product product = productDao.getById(productId);
-
             shoppingCartDao.update(userId, productId, quantity);
 
-            ShoppingCart cart = shoppingCartDao.getByUserId(userId);
-            if(cart == null || cart.getItems().isEmpty()){
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            return cart;
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error!");
+            return shoppingCartDao.getByUserId(userId);
+        } catch (Exception ex){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     //DELETE METHOD
     @DeleteMapping
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ShoppingCart clearCart(Principal principal) {
-
-        if(principal == null){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
-
-        try {
-            String userName = principal.getName();
-            User user = userDao.getByUserName(userName);
+        try{
+            String username = principal.getName();
+            User user = userDao.getByUserName(username);
             int userId = user.getId();
 
             shoppingCartDao.clear(userId);
-
-            return new ShoppingCart();
-
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+            return shoppingCartDao.getByUserId(userId);
+        }
+        catch(Exception ex){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }

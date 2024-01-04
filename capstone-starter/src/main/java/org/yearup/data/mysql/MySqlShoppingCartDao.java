@@ -1,7 +1,10 @@
 package org.yearup.data.mysql;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 import org.yearup.data.ShoppingCartDao;
+import org.yearup.data.UserDao;
 import org.yearup.models.Product;
 import org.yearup.models.ShoppingCart;
 import org.yearup.models.ShoppingCartItem;
@@ -18,127 +21,54 @@ import java.sql.*;
 @Component
 public class MySqlShoppingCartDao extends MySqlDaoBase implements ShoppingCartDao {
 
-    public MySqlShoppingCartDao(DataSource dataSource){super(dataSource);}
+
+    @Autowired
+    public MySqlShoppingCartDao(DataSource dataSource) {
+        super(dataSource);
+    }
 
     @Override
     public ShoppingCart getByUserId(int userId) {
-        ShoppingCart cart = new ShoppingCart();
-        String query = "SELECT p.*, ci.Quantity FROM ShoppingCartItems ci " +
-                    "JOIN Products p ON ci.ProductId = p.ProductId " +
-                    "WHERE ci.UserId = ?";
+        ShoppingCart shoppingCart = new ShoppingCart();
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(query)) {
+        String sql = "SELECT shopping_cart.user_id, shopping_cart.quantity, products.* " +
+                "FROM shopping_cart " +
+                "JOIN products ON shopping_cart.product_id = products.product_id " +
+                "WHERE shopping_cart.user_id = ?";
+        try(Connection connection = getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql) ){
+            ps.setInt(1,userId);
+            ResultSet row = ps.executeQuery();
 
-            ps.setInt(1, userId);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                int productId = rs.getInt("ProductId");
-                String name = rs.getString("Name");
-                BigDecimal price = rs.getBigDecimal("Price");
-                int categoryId = rs.getInt("CategoryId");
-                String description = rs.getString("Description");
-                String color = rs.getString("Color");
-                int stock = rs.getInt("Stock");
-                String imageUrl = rs.getString("ImageUrl");
-                boolean featured = rs.getBoolean("Featured");
-                int quantity = rs.getInt("Quantity");
-
-                Product product = new Product(productId, name, price, categoryId, description, color, stock, featured, imageUrl);
-
-                ShoppingCartItem item = new ShoppingCartItem();
-                item.setProduct(product);
-                item.setQuantity(quantity);
-
-                cart.add(item);
+            while(row.next()){
+                ShoppingCartItem shoppingCartItem = mapRow(row);
+                shoppingCart.add(shoppingCartItem);
             }
-        } catch (SQLException e) {
-
-            e.printStackTrace();
         }
-        return cart;
-    }
-
-    @Override
-    public List<Product> getShoppingCartContents(int userId) {
-
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT p.* FROM shopping_cart ci " +
-                "JOIN products p ON ci.product_id = p.product_id " +
-                "WHERE ci.user_id = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, userId);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                // Extract product details from ResultSet
-                int productId = rs.getInt("ProductId");
-                String name = rs.getString("Name");
-                BigDecimal price = rs.getBigDecimal("Price");
-                int categoryId = rs.getInt("CategoryId");
-                String description = rs.getString("Description");
-                String color = rs.getString("Color");
-                int stock = rs.getInt("Stock");
-                String imageUrl = rs.getString("ImageUrl");
-                boolean featured = rs.getBoolean("Featured");
-
-                // Create Product object using full constructor
-                Product product = new Product(productId, name, price, categoryId, description, color, stock, featured, imageUrl);
-
-                // Add product to the list
-                products.add(product);
-            }
-        } catch (SQLException e) {
-            // Log and handle the exception
-            e.printStackTrace();
-        }
-        return products;
-    }
-
-    @Override
-    public void addProductToCart(int userId, Product product) {
-        String sql = "INSERT INTO shopping_cart (user_id, product_id, quantity) VALUES (?, ?, ?)";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, userId);
-            ps.setInt(2, product.getProductId());
-            ps.setInt(3, 1); // Assuming a default quantity of 1, adjust as needed
-
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public ShoppingCart create(ShoppingCart shoppingCart) {
-        String sql = "INSERT INTO shopping_cart (product_id, quantity) VALUES (?, ?)";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            for (ShoppingCartItem item : shoppingCart.getItems().values()) {
-                ps.setInt(1, item.getProduct().getProductId());
-                ps.setInt(2, item.getQuantity());
-
-                ps.addBatch(); // Add to batch for bulk insertion
-            }
-
-            ps.executeBatch(); // Execute batch insert
-
-        } catch (SQLException e) {
-            // Log and handle the exception
-            e.printStackTrace();
+        catch (SQLException exception){
+            throw new RuntimeException(exception);
         }
         return shoppingCart;
     }
 
+    @Override
+    public void addProductToCart(int userId, int productId) {
+        String sql = "INSERT INTO shopping_cart (user_id, product_id, quantity) VALUES (?, ?, ?)" +
+                    "ON DUPLICATE KEY UPDATE quantity = quantity + 1;";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            ps.setInt(2, productId);
+            ps.setInt(3,1);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public void update(int userId, int productId, int quantity) {
@@ -151,10 +81,15 @@ public class MySqlShoppingCartDao extends MySqlDaoBase implements ShoppingCartDa
             ps.setInt(2, userId);
             ps.setInt(3, productId);
 
-            ps.executeUpdate();
+            int updated = ps.executeUpdate();
+
+            if(updated == 0){
+                throw new RuntimeException("Item not found");
+            }
+
         } catch (SQLException e) {
             // Log and handle the exception
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
@@ -167,10 +102,31 @@ public class MySqlShoppingCartDao extends MySqlDaoBase implements ShoppingCartDa
 
             ps.setInt(1, userId);
             ps.executeUpdate();
+
         } catch (SQLException e) {
             // Log and handle the exception
             e.printStackTrace();
         }
+    }
+
+    private static ShoppingCartItem mapRow(ResultSet row) throws SQLException{
+        int productId = row.getInt("product_id");
+        int quantity = row.getInt("quantity");
+        String name = row.getString("name");
+        BigDecimal price = row.getBigDecimal("price");
+        int categoryId = row.getInt("category_id");
+        String description = row.getString("description");
+        String color = row.getString("color");
+        int stock = row.getInt("stock");
+        boolean isFeatured = row.getBoolean("featured");
+        String imageUrl = row.getString("image_url");
+
+        ShoppingCartItem shoppingCartItem = new ShoppingCartItem();
+        Product product = new Product(productId,name,price,categoryId,description,color,stock,isFeatured,imageUrl);
+        shoppingCartItem.setProduct(product);
+        shoppingCartItem.setQuantity(quantity);
+
+        return shoppingCartItem;
     }
 
 }
