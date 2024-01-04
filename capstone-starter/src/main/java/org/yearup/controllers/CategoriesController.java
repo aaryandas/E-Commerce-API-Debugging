@@ -20,17 +20,14 @@ import java.util.List;
 @RequestMapping("categories")
 @CrossOrigin
 public class CategoriesController {
-    private CategoryDao categoryDao;
-    private ProductDao productDao;
-
+    private final CategoryDao categoryDao;
+    private final ProductDao productDao;
 
     // create an Autowired controller to inject the categoryDao and ProductDao
     @Autowired
     public CategoriesController(CategoryDao categoryDao, ProductDao productDao){
         this.categoryDao = categoryDao;
         this.productDao = productDao;
-
-
     }
     @GetMapping // add the appropriate annotation for a get action
     public List<Category> getAll() {
@@ -38,10 +35,18 @@ public class CategoriesController {
         return categoryDao.getAllCategories();
     }
 @GetMapping("{id}") // add the appropriate annotation for a get action
-    public Category getById(@PathVariable int id)
+    public ResponseEntity<Category> getById(@PathVariable int id)
     {
         // get the category by id
-        return categoryDao.getById(id);
+
+        var getCategory =  categoryDao.getById(id);
+        if(getCategory == null){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        else {
+            return new ResponseEntity<>(getCategory, HttpStatus.OK);
+        }
+
     }
 
     // the url to return all products in category 1 would look like this
@@ -55,7 +60,7 @@ public class CategoriesController {
     // add annotation to call this method for a POST action
     // add annotation to ensure that only an ADMIN can call this function
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Category> addCategory(@RequestBody Category category)
     {
         // insert the category
@@ -66,17 +71,16 @@ public class CategoriesController {
     // add annotation to call this method for a PUT (update) action - the url path must include the categoryId
     // add annotation to ensure that only an ADMIN can call this function
     @PutMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void updateCategory(@PathVariable int id, @RequestBody Category category)
     {
         // update the category by id
         categoryDao.update(id, category);
     }
 
-
     // add annotation to call this method for a DELETE action - the url path must include the categoryId
     // add annotation to ensure that only an ADMIN can call this function
-    @DeleteMapping("/categories/{id}")
+    @DeleteMapping("{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCategory(@PathVariable int id)
     {

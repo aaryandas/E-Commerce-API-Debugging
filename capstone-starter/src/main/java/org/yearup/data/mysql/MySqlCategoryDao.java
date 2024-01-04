@@ -1,5 +1,6 @@
 package org.yearup.data.mysql;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.yearup.data.CategoryDao;
 import org.yearup.models.Category;
@@ -107,6 +108,7 @@ public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao
 
             ps.setInt(1, categoryId);
             ps.executeUpdate();
+
         } catch(SQLException ex){
             ex.printStackTrace();
         }
