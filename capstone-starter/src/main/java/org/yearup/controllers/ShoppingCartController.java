@@ -41,7 +41,7 @@ public class ShoppingCartController {
     }
 
     @GetMapping
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
     public ShoppingCart getCart(Principal principal){
         try{
             String username = principal.getName();
@@ -57,7 +57,7 @@ public class ShoppingCartController {
 
     //POST METHOD
     @PostMapping("/products/{productId}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
     public ShoppingCart addProductToCart(@PathVariable int productId, Principal principal) {
 
         try{
@@ -76,7 +76,7 @@ public class ShoppingCartController {
 
     //PUT METHOD
     @PutMapping("/products/{productId}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
     public ShoppingCart updateProductInCart(@PathVariable int productId, @RequestBody int quantity, Principal principal) {
         try{
             String username = principal.getName();
@@ -93,7 +93,7 @@ public class ShoppingCartController {
 
     //DELETE METHOD
     @DeleteMapping
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
     public ShoppingCart clearCart(Principal principal) {
         try{
             String username = principal.getName();
